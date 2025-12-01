@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.text.TextUtils
+import android.util.Log
 import com.alipay.sdk.app.PayTask
 import com.alipay.sdk.app.AuthTask
 import expo.modules.kotlin.modules.Module
@@ -38,19 +39,25 @@ class ExpoAlipayModule : Module() {
       executor.execute {
         try {
           val payTask = PayTask(activity)
-          val result = payTask.payV2(orderString, true)
+          // payV2 必须在子线程中调用，第二个参数 true 表示显示加载框
+          val result: Map<String, String> = payTask.payV2(orderString, true)
+          
+          Log.i("ExpoAlipay", "Payment result: $result")
           
           mainHandler.post {
+            // 将 Map<String, String> 转换为适合 Promise 的格式
             val resultMap = mutableMapOf<String, Any?>()
-            resultMap["resultStatus"] = result["resultStatus"]
-            resultMap["result"] = result["result"]
-            resultMap["memo"] = result["memo"]
+            resultMap["resultStatus"] = result["resultStatus"] ?: ""
+            resultMap["result"] = result["result"] ?: ""
+            resultMap["memo"] = result["memo"] ?: ""
             
+            Log.i("ExpoAlipay", "Resolving payment promise with: $resultMap")
             promise.resolve(resultMap)
           }
         } catch (e: Exception) {
+          Log.e("ExpoAlipay", "Payment error: ${e.message}", e)
           mainHandler.post {
-            promise.reject("E_ALIPAY_ERROR", e.message, e)
+            promise.reject("E_ALIPAY_ERROR", e.message ?: "Payment failed", e)
           }
         }
       }
@@ -66,22 +73,28 @@ class ExpoAlipayModule : Module() {
       executor.execute {
         try {
           val authTask = AuthTask(activity)
-          val result = authTask.authV2(authInfo, true)
+          // authV2 必须在子线程中调用，第二个参数 true 表示显示加载框
+          val result: Map<String, String> = authTask.authV2(authInfo, true)
+          
+          Log.i("ExpoAlipay", "Auth result: $result")
           
           mainHandler.post {
+            // 将 Map<String, String> 转换为适合 Promise 的格式
             val resultMap = mutableMapOf<String, Any?>()
-            resultMap["resultStatus"] = result["resultStatus"]
-            resultMap["result"] = result["result"]
-            resultMap["memo"] = result["memo"]
-            resultMap["resultCode"] = result["resultCode"]
-            resultMap["authCode"] = result["authCode"]
-            resultMap["alipayOpenId"] = result["alipayOpenId"]
+            resultMap["resultStatus"] = result["resultStatus"] ?: ""
+            resultMap["result"] = result["result"] ?: ""
+            resultMap["memo"] = result["memo"] ?: ""
+            resultMap["resultCode"] = result["resultCode"] ?: ""
+            resultMap["authCode"] = result["authCode"] ?: ""
+            resultMap["alipayOpenId"] = result["alipayOpenId"] ?: ""
             
+            Log.i("ExpoAlipay", "Resolving auth promise with: $resultMap")
             promise.resolve(resultMap)
           }
         } catch (e: Exception) {
+          Log.e("ExpoAlipay", "Auth error: ${e.message}", e)
           mainHandler.post {
-            promise.reject("E_ALIPAY_ERROR", e.message, e)
+            promise.reject("E_ALIPAY_ERROR", e.message ?: "Auth failed", e)
           }
         }
       }

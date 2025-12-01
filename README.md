@@ -40,43 +40,9 @@ pnpm add @jayming/expo-alipay
 }
 ```
 
-### 2. iOS 额外配置
+> **注意**: Config Plugin 会自动配置 iOS 的 AppDelegate 和 Android 的 Manifest,无需手动修改原生代码。
 
-在你的 `AppDelegate.mm` 或 `AppDelegate.swift` 中添加 URL Scheme 处理:
-
-**AppDelegate.mm (如果使用 Objective-C):**
-
-```objc
-#import <AlipaySDK/AlipaySDK.h>
-
-// 添加这个方法
-- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url options:(NSDictionary<UIApplicationOpenURLOptionsKey,id> *)options {
-  if ([url.host isEqualToString:@"safepay"]) {
-    [[AlipaySDK defaultService] processOrderWithPaymentResult:url standbyCallback:^(NSDictionary *resultDic) {
-      // 支付结果处理已在模块内部完成
-    }];
-  }
-  return YES;
-}
-```
-
-**AppDelegate.swift (如果使用 Swift):**
-
-```swift
-import AlipaySDK
-
-// 添加这个方法
-func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-  if url.host == "safepay" {
-    AlipaySDK.defaultService()?.processOrder(withPaymentResult: url, standbyCallback: { resultDic in
-      // 支付结果处理已在模块内部完成
-    })
-  }
-  return true
-}
-```
-
-### 3. 重新构建应用
+### 2. 重新构建应用
 
 ```bash
 npx expo prebuild
@@ -316,11 +282,11 @@ interface AlipayAuthResult {
 
 ### 1. iOS 支付后没有回调?
 
-确保在 `AppDelegate` 中正确实现了 URL Scheme 处理,并且 `app.json` 中配置的 scheme 与代码中设置的一致。
+确保 `app.json` 中配置的 scheme 与代码中 `setAlipayScheme()` 设置的一致,并在修改配置后重新运行 `npx expo prebuild`。
 
 ### 2. Android 找不到支付宝应用?
 
-确保在 `AndroidManifest.xml` 中添加了 `queries` 配置。如果使用了 Config Plugin,这会自动配置。
+Config Plugin 会自动在 `AndroidManifest.xml` 中添加 `queries` 配置,确保在添加 plugin 后重新运行 `npx expo prebuild`。
 
 ### 3. 订单信息从哪里获取?
 
