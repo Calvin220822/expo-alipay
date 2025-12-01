@@ -4,10 +4,10 @@ Pod::Spec.new do |s|
   s.summary        = 'Expo module for Alipay SDK integration'
   s.description    = 'Expo module for Alipay SDK integration on iOS and Android'
   s.author         = { 'jayming' => '' }
-  s.homepage       = 'https://github.com/jayming/expo-alipay'
+  s.homepage       = 'https://github.com/WangJM001/expo-alipay'
   s.license        = 'MIT'
   s.platforms      = { :ios => '13.0', :tvos => '13.0' }
-  s.source         = { :git => 'https://github.com/jayming/expo-alipay.git', :tag => s.version.to_s }
+  s.source         = { :git => 'https://github.com/WangJM001/expo-alipay.git', :tag => s.version.to_s }
   s.static_framework = true
 
   s.dependency 'ExpoModulesCore'
