@@ -1,0 +1,14 @@
+node_modules/
+build/
+*.log
+.DS_Store
+*.tgz
+.expo/
+.vscode/
+*.iml
+.idea/
+.gradle/
+android/build/
+ios/build/
+*.xcuserstate
+*.xcworkspace
