@@ -4,6 +4,12 @@ export interface AlipayPaymentResult {
   memo?: string;
 }
 
+export interface AlipayH5PaymentResult {
+  resultStatus: string;
+  memo?: string;
+  returnUrl?: string;
+}
+
 export interface AlipayAuthResult {
   resultStatus: string;
   result?: string;
@@ -32,6 +38,37 @@ export interface ExpoAlipayModule {
    * @returns Promise<AlipayPaymentResult> 支付结果
    */
   pay(orderString: string): Promise<AlipayPaymentResult>;
+
+  /**
+   * H5支付URL拦截方法（同步）
+   * 用于在 WebView 的 URL 变化时拦截支付宝H5支付URL
+   *
+   * @param url 需要拦截的URL
+   * @returns boolean 是否被拦截（true=已拦截,WebView不应继续加载；false=未拦截,WebView应继续加载）
+   *
+   * 使用方式：
+   * 1. 在 WebView 的 onShouldStartLoadWithRequest (iOS) 或 onNavigationStateChange (Android) 中调用
+   * 2. 监听 onH5PayResult 事件获取支付结果
+   *
+   * @example
+   * ```typescript
+   * // 监听支付结果事件
+   * ExpoAlipay.addListener('onH5PayResult', (result) => {
+   *   if (result.returnUrl) {
+   *     webviewRef.current.injectJavaScript(`window.location.href = "${result.returnUrl}"`);
+   *   }
+   * });
+   *
+   * // WebView URL 拦截
+   * <WebView
+   *   onShouldStartLoadWithRequest={(request) => {
+   *     const isIntercepted = ExpoAlipay.payInterceptorWithUrl(request.url);
+   *     return !isIntercepted; // true=继续加载, false=拦截
+   *   }}
+   * />
+   * ```
+   */
+  payInterceptorWithUrl(url: string): boolean;
 
   /**
    * 发起支付宝授权

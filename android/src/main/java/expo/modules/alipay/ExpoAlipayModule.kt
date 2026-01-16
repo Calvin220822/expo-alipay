@@ -8,6 +8,8 @@ import android.text.TextUtils
 import android.util.Log
 import com.alipay.sdk.app.PayTask
 import com.alipay.sdk.app.AuthTask
+import com.alipay.sdk.app.H5PayCallback
+import com.alipay.sdk.util.H5PayResultModel
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.kotlin.Promise
@@ -21,12 +23,17 @@ class ExpoAlipayModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("ExpoAlipay")
 
+    // 支付结果事件，用于H5支付回调
+    Events("onH5PayResult")
+
     Function("setAlipayScheme") { scheme: String ->
-      // Android 不需要设置 scheme
+      // Android 不需要设置 scheme，但保留此方法以保持API一致性
+      Log.d("ExpoAlipay", "setAlipayScheme called (Android doesn't require scheme)")
     }
 
     Function("setAppId") { appId: String ->
       this@ExpoAlipayModule.appId = appId
+      Log.d("ExpoAlipay", "App ID set: $appId")
     }
 
     AsyncFunction("pay") { orderString: String, promise: Promise ->
@@ -97,6 +104,62 @@ class ExpoAlipayModule : Module() {
             promise.reject("E_ALIPAY_ERROR", e.message ?: "Auth failed", e)
           }
         }
+      }
+    }
+
+    Function("payInterceptorWithUrl") { url: String ->
+      val activity = appContext.activityProvider?.currentActivity
+      if (activity == null) {
+        Log.e("ExpoAlipay", "Activity doesn't exist")
+        return@Function false
+      }
+
+      try {
+        val payTask = PayTask(activity)
+        
+        /**
+         * 推荐采用的新的二合一接口(payInterceptorWithUrl)，只需调用一次
+         * 参考官方WebViewClient实现
+         */
+        val isIntercepted = payTask.payInterceptorWithUrl(
+          url,
+          true,  // 显示loading
+          object : H5PayCallback {
+            override fun onPayResult(result: H5PayResultModel?) {
+              Log.i("ExpoAlipay", "H5 Payment callback - resultCode: ${result?.resultCode}, returnUrl: ${result?.returnUrl}")
+              
+              val resultMap = mutableMapOf<String, Any?>()
+              
+              if (result != null) {
+                // resultCode: 9000-成功, 8000-处理中, 4000-失败, 6001-取消, 6002-网络错误
+                resultMap["resultStatus"] = result.resultCode ?: ""
+                resultMap["memo"] = result.resultCode ?: ""
+                
+                // returnUrl: 支付完成后需要WebView加载的URL
+                // 参考官方示例：if(!TextUtils.isEmpty(url)) { view.loadUrl(url); }
+                val returnUrl = result.returnUrl
+                if (!TextUtils.isEmpty(returnUrl)) {
+                  resultMap["returnUrl"] = returnUrl
+                  Log.i("ExpoAlipay", "Payment completed, should load returnUrl: $returnUrl")
+                }
+              } else {
+                resultMap["resultStatus"] = "error"
+                resultMap["memo"] = "Payment result is null"
+              }
+              
+              // 通过事件发送支付结果
+              Log.i("ExpoAlipay", "Sending H5 payment result event: $resultMap")
+              sendEvent("onH5PayResult", resultMap)
+            }
+          }
+        )
+        
+        Log.i("ExpoAlipay", "H5 Payment URL intercepted: $isIntercepted")
+        
+        return@Function isIntercepted
+      } catch (e: Exception) {
+        Log.e("ExpoAlipay", "H5 Payment error: ${e.message}", e)
+        return@Function false
       }
     }
 

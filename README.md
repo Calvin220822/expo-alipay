@@ -5,6 +5,7 @@ Expo 支付宝 SDK 集成模块,支持 iOS 和 Android 平台。
 ## 功能特性
 
 - ✅ 支付宝支付
+- ✅ 手机网站转 APP 支付（H5 支付）
 - ✅ 支付宝授权
 - ✅ 检查支付宝是否已安装
 - ✅ 自动配置(通过 Config Plugin)
@@ -42,7 +43,29 @@ pnpm add @jayming/expo-alipay
 
 > **注意**: Config Plugin 会自动配置 iOS 的 AppDelegate 和 Android 的 Manifest,无需手动修改原生代码。
 
-### 2. 重新构建应用
+### 2. Android 权限配置
+
+如果您使用的是 **裸 React Native** 项目或需要手动配置，请在 `android/app/src/main/AndroidManifest.xml` 中添加以下权限：
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+<uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+```
+
+如果需要读取设备信息（可选），还可以添加：
+
+```xml
+<uses-permission android:name="android.permission.READ_PHONE_STATE" />
+<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+```
+
+> **注意**:
+>
+> - 对于 **Expo 项目**，Config Plugin 会自动处理基础权限，无需手动添加
+> - `READ_PHONE_STATE` 和 `WRITE_EXTERNAL_STORAGE` 在 Android 6.0+ 需要动态申请权限
+
+### 3. 重新构建应用
 
 ```bash
 npx expo prebuild
@@ -248,6 +271,31 @@ interface AlipayPaymentResult {
 - `6001`: 用户中途取消
 - `6002`: 网络连接出错
 - `6004`: 支付结果未知
+
+### `payInterceptorWithUrl(orderString: string): Promise<AlipayPaymentResult>`
+
+手机网站转 APP 支付（H5 支付）。用于从 H5 页面跳转到支付宝 APP 完成支付。
+
+**参数:**
+
+- `orderString`: H5 支付 URL 字符串(从服务端获取，使用 `alipay.trade.wap.pay` 接口生成)
+
+**返回值:**
+
+与 `pay()` 方法相同的 `AlipayPaymentResult` 类型。
+
+**示例:**
+
+```typescript
+// 从服务端获取H5支付URL
+const response = await fetch('https://your-api.com/alipay/create-h5-order');
+const { payUrl } = await response.json();
+
+// 调用H5支付
+const result = await ExpoAlipay.payInterceptorWithUrl(payUrl);
+```
+
+**详细文档:** 参见 [H5 支付使用指南](./docs/H5_PAYMENT.md)
 
 ### `auth(authInfo: string): Promise<AlipayAuthResult>`
 

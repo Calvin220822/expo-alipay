@@ -1,8 +1,12 @@
-import { AlipayPaymentResult, AlipayAuthResult } from './ExpoAlipay.types';
+import { AlipayPaymentResult, AlipayAuthResult, AlipayH5PaymentResult } from './ExpoAlipay.types';
+import { EventEmitter, Subscription } from 'expo-modules-core';
 
 // Import the native module. On web, it will be resolved to ExpoAlipay.web.ts
 // and on native platforms to ExpoAlipay.ts
 import ExpoAlipayModule from './ExpoAlipayModule';
+
+// Event emitter for H5 payment results
+const emitter = new EventEmitter(ExpoAlipayModule);
 
 /**
  * 设置支付宝的 URL Scheme (iOS only)
@@ -27,6 +31,53 @@ export function setAppId(appId: string): void {
  */
 export async function pay(orderString: string): Promise<AlipayPaymentResult> {
   return await ExpoAlipayModule.pay(orderString);
+}
+
+/**
+ * H5支付URL拦截方法（同步）
+ * 用于在 WebView 的 URL 变化时拦截支付宝H5支付URL
+ *
+ * @param url 需要拦截的URL
+ * @returns boolean 是否被拦截（true=已拦截,WebView不应继续加载；false=未拦截,WebView应继续加载）
+ *
+ * 使用方式：
+ * 1. 在 WebView 的 onShouldStartLoadWithRequest (iOS) 或 onNavigationStateChange (Android) 中调用
+ * 2. 监听 onH5PayResult 事件获取支付结果
+ *
+ * @example
+ * ```typescript
+ * // 监听支付结果事件
+ * const subscription = addH5PayResultListener((result) => {
+ *   if (result.returnUrl) {
+ *     webviewRef.current.injectJavaScript(`window.location.href = "${result.returnUrl}"`);
+ *   }
+ * });
+ *
+ * // WebView URL 拦截
+ * <WebView
+ *   onShouldStartLoadWithRequest={(request) => {
+ *     const isIntercepted = payInterceptorWithUrl(request.url);
+ *     return !isIntercepted; // true=继续加载, false=拦截
+ *   }}
+ * />
+ *
+ * // 清理监听
+ * subscription.remove();
+ * ```
+ */
+export function payInterceptorWithUrl(url: string): boolean {
+  return ExpoAlipayModule.payInterceptorWithUrl(url);
+}
+
+/**
+ * 添加H5支付结果监听器
+ * @param listener 支付结果回调函数
+ * @returns Subscription 订阅对象，调用 remove() 可取消监听
+ */
+export function addH5PayResultListener(
+  listener: (result: AlipayH5PaymentResult) => void
+): Subscription {
+  return emitter.addListener('onH5PayResult', listener);
 }
 
 /**
