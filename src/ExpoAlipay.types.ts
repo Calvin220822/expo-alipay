@@ -1,3 +1,5 @@
+import { NativeModule } from 'expo-modules-core';
+
 export interface AlipayPaymentResult {
   resultStatus: string;
   result?: string;
@@ -19,7 +21,11 @@ export interface AlipayAuthResult {
   alipayOpenId?: string;
 }
 
-export interface ExpoAlipayModule {
+export type AlipayEvents = {
+  onH5PayResult(event: AlipayH5PaymentResult): void;
+};
+
+export interface ExpoAlipayModule extends NativeModule<AlipayEvents> {
   /**
    * 设置支付宝的 URL Scheme (iOS only)
    * @param scheme URL Scheme, 例如 "alipay" 或你的 app scheme

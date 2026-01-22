@@ -228,6 +228,12 @@ async function fetchAuthInfoFromServer() {
 
 ## API 文档
 
+### Web 平台说明
+
+- 在浏览器环境中，无法调用原生支付宝 SDK，因此 `pay` 和 `auth` 方法在 Web 平台上不可用，会返回 rejected Promise。请在服务端/前端采用 H5 支付的跳转流程。
+- `payInterceptorWithUrl` 在 Web 上是同步的，尝试在浏览器中打开传入的支付宝 H5 链接（或 Scheme），并返回一个布尔值表示是否已拦截/处理该 URL（true=已处理，false=未处理）。
+- `isAlipayInstalled` 在浏览器上无法可靠判断客户端 App 是否安装，函数会返回 `false`。
+
 ### `setAlipayScheme(scheme: string): void`
 
 设置支付宝的 URL Scheme (iOS 必需)。
@@ -272,27 +278,33 @@ interface AlipayPaymentResult {
 - `6002`: 网络连接出错
 - `6004`: 支付结果未知
 
-### `payInterceptorWithUrl(orderString: string): Promise<AlipayPaymentResult>`
+### `payInterceptorWithUrl(url: string): boolean`
 
-手机网站转 APP 支付（H5 支付）。用于从 H5 页面跳转到支付宝 APP 完成支付。
+手机网站转 APP 支付（H5 支付）拦截方法（同步）。用于在 WebView 或浏览器中处理支付宝 H5 支付链接，或在浏览器中触发 App Scheme。
 
 **参数:**
 
-- `orderString`: H5 支付 URL 字符串(从服务端获取，使用 `alipay.trade.wap.pay` 接口生成)
+- `url`: H5 支付 URL 字符串(从服务端获取，使用 `alipay.trade.wap.pay` 接口生成) 或 支付宝 App Scheme
 
 **返回值:**
 
-与 `pay()` 方法相同的 `AlipayPaymentResult` 类型。
+- `boolean`: 是否已拦截/处理该 URL（true=已拦截，通常不会继续在 WebView 中加载；false=未拦截）
 
-**示例:**
+**示例（浏览器 / WebView 拦截使用）:**
 
 ```typescript
 // 从服务端获取H5支付URL
 const response = await fetch('https://your-api.com/alipay/create-h5-order');
 const { payUrl } = await response.json();
 
-// 调用H5支付
-const result = await ExpoAlipay.payInterceptorWithUrl(payUrl);
+// Web 平台：直接在浏览器中打开 URL，函数返回是否已拦截
+const isIntercepted = ExpoAlipay.payInterceptorWithUrl(payUrl);
+
+// 在 WebView 中的示例：
+// onShouldStartLoadWithRequest={(request) => {
+//   const intercepted = ExpoAlipay.payInterceptorWithUrl(request.url);
+//   return !intercepted; // true=继续加载, false=拦截
+// }}
 ```
 
 **详细文档:** 参见 [H5 支付使用指南](./docs/H5_PAYMENT.md)
